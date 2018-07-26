@@ -265,10 +265,15 @@ Error AudioDriverWASAPI::audio_device_init(AudioDeviceWASAPI *p_device, bool p_c
 	}
 
 	DWORD streamflags = 0;
-	if (mix_rate != pwfex->nSamplesPerSec) {
-		streamflags |= AUDCLNT_STREAMFLAGS_RATEADJUST;
-		pwfex->nSamplesPerSec = mix_rate;
-		pwfex->nAvgBytesPerSec = pwfex->nSamplesPerSec * pwfex->nChannels * (pwfex->wBitsPerSample / 8);
+	if (p_device->mix_rate != pwfex->nSamplesPerSec) {
+		if (p_capture) {
+			p_device->mix_rate = pwfex->nSamplesPerSec;
+		} else {
+			// AUDCLNT_STREAMFLAGS_RATEADJUST only works for output devices
+			streamflags |= AUDCLNT_STREAMFLAGS_RATEADJUST;
+			pwfex->nSamplesPerSec = p_device->mix_rate;
+			pwfex->nAvgBytesPerSec = pwfex->nSamplesPerSec * pwfex->nChannels * (pwfex->wBitsPerSample / 8);
+		}
 	}
 
 	hr = p_device->audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, streamflags, 0, p_capture ? REFTIMES_PER_SEC : 0, pwfex, NULL);
@@ -320,7 +325,7 @@ Error AudioDriverWASAPI::init_render_device(bool reinit) {
 
 	if (OS::get_singleton()->is_stdout_verbose()) {
 		print_line("WASAPI: detected " + itos(channels) + " channels");
-		print_line("WASAPI: audio buffer frames: " + itos(buffer_frames) + " calculated latency: " + itos(buffer_frames * 1000 / mix_rate) + "ms");
+		print_line("WASAPI: audio buffer frames: " + itos(buffer_frames) + " calculated latency: " + itos(buffer_frames * 1000 / audio_output.mix_rate) + "ms");
 	}
 
 	return OK;
@@ -376,7 +381,8 @@ Error AudioDriverWASAPI::finish_capture_device() {
 
 Error AudioDriverWASAPI::init() {
 
-	mix_rate = GLOBAL_DEF_RST("audio/mix_rate", DEFAULT_MIX_RATE);
+	audio_output.mix_rate = GLOBAL_DEF_RST("audio/mix_rate", DEFAULT_MIX_RATE);
+	audio_input.mix_rate = audio_output.mix_rate;
 
 	Error err = init_render_device();
 	if (err != OK) {
@@ -394,7 +400,7 @@ Error AudioDriverWASAPI::init() {
 
 int AudioDriverWASAPI::get_mix_rate() const {
 
-	return mix_rate;
+	return audio_output.mix_rate;
 }
 
 AudioDriver::SpeakerMode AudioDriverWASAPI::get_speaker_mode() const {
@@ -812,6 +818,11 @@ Error AudioDriverWASAPI::capture_stop() {
 	return FAILED;
 }
 
+int AudioDriverWASAPI::capture_get_mix_rate() const {
+
+	return audio_input.mix_rate;
+}
+
 void AudioDriverWASAPI::capture_set_device(const String &p_name) {
 
 	lock();
@@ -841,7 +852,6 @@ AudioDriverWASAPI::AudioDriverWASAPI() {
 	samples_in.clear();
 
 	channels = 0;
-	mix_rate = 0;
 	buffer_frames = 0;
 
 	thread_exited = false;
