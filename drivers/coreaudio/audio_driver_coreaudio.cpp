@@ -156,7 +156,7 @@ Error AudioDriverCoreAudio::init() {
 	input_buf.resize(buffer_size);
 	audio_input_buffer.resize(buffer_size * 8);
 	for (int i = 0; i < audio_input_buffer.size(); i++) {
-		audio_input_buffer[i] = 0;
+		audio_input_buffer.write[i] = 0;
 	}
 	audio_input_position = 0;
 
@@ -251,7 +251,7 @@ OSStatus AudioDriverCoreAudio::input_callback(void *inRefCon,
 	OSStatus result = AudioUnitRender(ad->audio_unit, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, &bufferList);
 	if (result == noErr) {
 		for (int i = 0; i < inNumberFrames * 2; i++) {
-			ad->audio_input_buffer[ad->audio_input_position++] = ad->input_buf[i] << 16;
+			ad->audio_input_buffer.write[ad->audio_input_position++] = ad->input_buf[i] << 16;
 			if (ad->audio_input_position >= ad->audio_input_buffer.size()) {
 				ad->audio_input_position = 0;
 			}

@@ -345,7 +345,7 @@ Error AudioDriverWASAPI::init_capture_device(bool reinit) {
 	// Set the buffer size
 	audio_input_buffer.resize(max_frames * 8);
 	for (int i = 0; i < audio_input_buffer.size(); i++) {
-		audio_input_buffer[i] = 0;
+		audio_input_buffer.write[i] = 0;
 	}
 	audio_input_position = 0;
 
@@ -557,7 +557,7 @@ void AudioDriverWASAPI::thread_func(void *p_udata) {
 				ad->audio_server_process(ad->buffer_frames, ad->samples_in.ptrw());
 			} else {
 				for (unsigned int i = 0; i < ad->samples_in.size(); i++) {
-					ad->samples_in[i] = 0;
+					ad->samples_in.write[i] = 0;
 				}
 			}
 
@@ -588,12 +588,12 @@ void AudioDriverWASAPI::thread_func(void *p_udata) {
 						// We're using WASAPI Shared Mode so we must convert the buffer
 						if (ad->channels == ad->audio_output.channels) {
 							for (unsigned int i = 0; i < write_frames * ad->channels; i++) {
-								ad->write_sample(ad->audio_output.format_tag, ad->audio_output.bits_per_sample, buffer, i, ad->samples_in[write_ofs++]);
+								ad->write_sample(ad->audio_output.format_tag, ad->audio_output.bits_per_sample, buffer, i, ad->samples_in.write[write_ofs++]);
 							}
 						} else {
 							for (unsigned int i = 0; i < write_frames; i++) {
 								for (unsigned int j = 0; j < MIN(ad->channels, ad->audio_output.channels); j++) {
-									ad->write_sample(ad->audio_output.format_tag, ad->audio_output.bits_per_sample, buffer, i * ad->audio_output.channels + j, ad->samples_in[write_ofs++]);
+									ad->write_sample(ad->audio_output.format_tag, ad->audio_output.bits_per_sample, buffer, i * ad->audio_output.channels + j, ad->samples_in.write[write_ofs++]);
 								}
 								if (ad->audio_output.channels > ad->channels) {
 									for (unsigned int j = ad->channels; j < ad->audio_output.channels; j++) {
@@ -690,7 +690,7 @@ void AudioDriverWASAPI::thread_func(void *p_udata) {
 							sample = read_sample(ad->audio_input.format_tag, ad->audio_input.bits_per_sample, data, j);
 						}
 
-						ad->audio_input_buffer[ad->audio_input_position++] = sample;
+						ad->audio_input_buffer.write[ad->audio_input_position++] = sample;
 						if (ad->audio_input_position >= ad->audio_input_buffer.size()) {
 							ad->audio_input_position = 0;
 						}

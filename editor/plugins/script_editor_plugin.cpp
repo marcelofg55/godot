@@ -342,11 +342,11 @@ void ScriptEditor::_save_history() {
 
 		if (Object::cast_to<ScriptEditorBase>(n)) {
 
-			history[history_pos].state = Object::cast_to<ScriptEditorBase>(n)->get_edit_state();
+			history.write[history_pos].state = Object::cast_to<ScriptEditorBase>(n)->get_edit_state();
 		}
 		if (Object::cast_to<EditorHelp>(n)) {
 
-			history[history_pos].state = Object::cast_to<EditorHelp>(n)->get_scroll();
+			history.write[history_pos].state = Object::cast_to<EditorHelp>(n)->get_scroll();
 		}
 	}
 
@@ -373,11 +373,11 @@ void ScriptEditor::_go_to_tab(int p_idx) {
 
 		if (Object::cast_to<ScriptEditorBase>(n)) {
 
-			history[history_pos].state = Object::cast_to<ScriptEditorBase>(n)->get_edit_state();
+			history.write[history_pos].state = Object::cast_to<ScriptEditorBase>(n)->get_edit_state();
 		}
 		if (Object::cast_to<EditorHelp>(n)) {
 
-			history[history_pos].state = Object::cast_to<EditorHelp>(n)->get_scroll();
+			history.write[history_pos].state = Object::cast_to<EditorHelp>(n)->get_scroll();
 		}
 	}
 
@@ -1876,6 +1876,7 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 
 	if ((debugger->get_dump_stack_script() != p_resource || debugger->get_debug_with_external_editor()) &&
 			p_resource->get_path().is_resource_file() &&
+			p_resource->get_class_name() != StringName("VisualScript") &&
 			bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor"))) {
 
 		String path = EditorSettings::get_singleton()->get("text_editor/external/exec_path");
@@ -2407,14 +2408,14 @@ void ScriptEditor::_make_script_list_context_menu() {
 		context_menu->add_separator();
 		context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/copy_path"), FILE_COPY_PATH);
 		context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/show_in_file_system"), SHOW_IN_FILE_SYSTEM);
-	}
 
-	Ref<Script> scr = se->get_edited_resource();
-	if (scr != NULL) {
-		context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/reload_script_soft"), FILE_TOOL_RELOAD_SOFT);
-		if (!scr.is_null() && scr->is_tool()) {
-			context_menu->add_separator();
-			context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/run_file"), FILE_RUN);
+		Ref<Script> scr = se->get_edited_resource();
+		if (scr != NULL) {
+			context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/reload_script_soft"), FILE_TOOL_RELOAD_SOFT);
+			if (!scr.is_null() && scr->is_tool()) {
+				context_menu->add_separator();
+				context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/run_file"), FILE_RUN);
+			}
 		}
 	} else {
 		context_menu->add_shortcut(ED_GET_SHORTCUT("script_editor/close_file"), FILE_CLOSE);
@@ -2612,11 +2613,11 @@ void ScriptEditor::_update_history_pos(int p_new_pos) {
 
 	if (Object::cast_to<ScriptEditorBase>(n)) {
 
-		history[history_pos].state = Object::cast_to<ScriptEditorBase>(n)->get_edit_state();
+		history.write[history_pos].state = Object::cast_to<ScriptEditorBase>(n)->get_edit_state();
 	}
 	if (Object::cast_to<EditorHelp>(n)) {
 
-		history[history_pos].state = Object::cast_to<EditorHelp>(n)->get_scroll();
+		history.write[history_pos].state = Object::cast_to<EditorHelp>(n)->get_scroll();
 	}
 
 	history_pos = p_new_pos;
