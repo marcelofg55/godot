@@ -238,6 +238,17 @@ Error AudioDriverWASAPI::audio_device_init(AudioDeviceWASAPI *p_device, bool p_c
 	hr = p_device->audio_client->GetMixFormat(&pwfex);
 	ERR_FAIL_COND_V(hr != S_OK, ERR_CANT_OPEN);
 
+	bool exclusive_mode = true;
+
+	if (exclusive_mode) {
+		pwfex->wFormatTag = WAVE_FORMAT_PCM;
+		pwfex->wBitsPerSample = 24;
+		pwfex->nSamplesPerSec = mix_rate;
+		pwfex->nAvgBytesPerSec = (pwfex->nSamplesPerSec * pwfex->nChannels * pwfex->wBitsPerSample) / 8;
+		pwfex->nBlockAlign = (pwfex->nChannels * pwfex->wBitsPerSample) / 8;
+		pwfex->cbSize = 0;
+	}
+
 	// Since we're using WASAPI Shared Mode we can't control any of these, we just tag along
 	p_device->channels = pwfex->nChannels;
 	p_device->format_tag = pwfex->wFormatTag;
@@ -269,8 +280,19 @@ Error AudioDriverWASAPI::audio_device_init(AudioDeviceWASAPI *p_device, bool p_c
 		pwfex->nAvgBytesPerSec = pwfex->nSamplesPerSec * pwfex->nChannels * (pwfex->wBitsPerSample / 8);
 	}
 
-	hr = p_device->audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, streamflags, p_capture ? REFTIMES_PER_SEC : 0, 0, pwfex, NULL);
-	ERR_FAIL_COND_V(hr != S_OK, ERR_CANT_OPEN);
+	if (exclusive_mode && !p_capture) {
+		REFERENCE_TIME hnsPeriod = 0;
+
+		hr = p_device->audio_client->GetDevicePeriod(NULL, &hnsPeriod);
+		ERR_FAIL_COND_V(hr != S_OK, ERR_CANT_OPEN);
+
+		hr = p_device->audio_client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, streamflags, hnsPeriod, 0, pwfex, NULL);
+		printf("%X flags=%d formatTag=%d channels=%d bitspersample=%d rate=%d avgbytes=%d\n", hr, streamflags, pwfex->wFormatTag, pwfex->nChannels, pwfex->wBitsPerSample, pwfex->nSamplesPerSec, pwfex->nAvgBytesPerSec);
+		ERR_FAIL_COND_V(hr != S_OK, ERR_CANT_OPEN);
+	} else {
+		hr = p_device->audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, streamflags, p_capture ? REFTIMES_PER_SEC : 0, 0, pwfex, NULL);
+		ERR_FAIL_COND_V(hr != S_OK, ERR_CANT_OPEN);
+	}
 
 	if (p_capture) {
 		hr = p_device->audio_client->GetService(IID_IAudioCaptureClient, (void **)&p_device->capture_client);
@@ -500,6 +522,11 @@ int32_t AudioDriverWASAPI::read_sample(WORD format_tag, int bits_per_sample, BYT
 
 void AudioDriverWASAPI::write_sample(WORD format_tag, int bits_per_sample, BYTE *buffer, int i, int32_t sample) {
 	if (format_tag == WAVE_FORMAT_PCM) {
+		static bool ptest = false;
+		if (ptest == false) {
+			printf("bits_per_sample=%d\n", bits_per_sample);
+			ptest = true;
+		}
 		switch (bits_per_sample) {
 			case 8:
 				((int8_t *)buffer)[i] = sample >> 24;
