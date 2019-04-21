@@ -64,7 +64,6 @@ public class GodotLib {
 	public static native void joyconnectionchanged(int p_device, boolean p_connected, String p_name);
 	public static native void focusin();
 	public static native void focusout();
-	public static native void audio();
 	public static native void singleton(String p_name, Object p_object);
 	public static native void method(String p_sname, String p_name, String p_ret, String[] p_params);
 	public static native String getGlobal(String p_key);

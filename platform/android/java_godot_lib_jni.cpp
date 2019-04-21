@@ -634,7 +634,6 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv *en
 #endif
 
 	DirAccessJAndroid::setup(godot_io_java->get_instance());
-	AudioDriverAndroid::setup(godot_io_java->get_instance());
 
 	os_android = new OS_Android(godot_java, godot_io_java, p_use_apk_expansion);
 
@@ -1205,12 +1204,6 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_focusout(JNIEnv *env,
 		return;
 
 	os_android->main_loop_focusout();
-}
-
-JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_audio(JNIEnv *env, jobject obj) {
-
-	ThreadAndroid::setup_thread();
-	AudioDriverAndroid::thread_func(env);
 }
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_singleton(JNIEnv *env, jobject obj, jstring name, jobject p_object) {

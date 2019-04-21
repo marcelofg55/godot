@@ -79,7 +79,6 @@ private:
 
 	mutable String data_dir_cache;
 
-	//AudioDriverAndroid audio_driver_android;
 	AudioDriverOpenSL audio_driver_android;
 
 	const char *gl_extensions;
